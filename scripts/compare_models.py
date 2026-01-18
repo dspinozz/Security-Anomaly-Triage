@@ -339,7 +339,7 @@ def main():
     parser.add_argument(
         "--data",
         type=Path,
-        default=Path("data/synthetic/synthetic_events.csv"),
+        default=Path("data/unsw-nb15/UNSW_NB15_training-set.csv"),
         help="Path to data CSV"
     )
     args = parser.parse_args()

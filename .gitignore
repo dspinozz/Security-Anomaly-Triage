@@ -164,3 +164,4 @@ celerybeat.pid
 *.prof
 terraform/.terraform/
 .terraform.lock.hcl
+catboost_info/

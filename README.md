@@ -13,18 +13,19 @@ A cybersecurity ML system for anomaly scoring and alert triage using gradient bo
 3. **Explainability**: Provide top contributing features for each score
 4. **Production Ready**: FastAPI endpoints with JSON I/O
 
+
 ## 📊 Performance
 
-Evaluated on UNSW-NB15-like dataset (50,000 samples, 9 attack types):
+Evaluated on UNSW-NB15 dataset (82,332 samples, 9 attack categories):
 
 | Model | ROC-AUC | PR-AUC | F1 Score | Train Time |
 |-------|---------|--------|----------|------------|
-| LightGBM | 0.957 | 0.917 | 0.813 | 165s |
-| XGBoost | 0.957 | 0.918 | 0.813 | 54s |
-| CatBoost | 0.957 | 0.916 | 0.808 | 0.7s |
-| Isolation Forest | 0.606 | 0.422 | 0.347 | 0.2s |
+| LightGBM | 0.998 | 0.998 | 0.979 | 2.5s |
+| XGBoost | 0.998 | 0.998 | 0.979 | 1.2s |
+| CatBoost | 0.997 | 0.998 | 0.977 | 2.5s |
+| Isolation Forest | 0.380 | 0.480 | 0.052 | 0.3s |
 
-*Note: All three GBT variants achieve similar performance, which is expected—they use the same underlying algorithm family. See [notebooks/eda.py](notebooks/eda.py) for analysis.*
+*Note: Isolation Forest performs poorly on this dataset because it has 55% attack rate (unsupervised methods assume anomalies are rare). GBT models achieve near-perfect classification.*
 
 ### Model Comparison Insights
 
@@ -126,8 +127,9 @@ pip install -r requirements.txt
 ### Prepare Data
 
 ```bash
-# Download UNSW-NB15-like dataset (recommended)
-python scripts/download_unsw.py --sample 50000
+# Download UNSW-NB15 dataset from Kaggle
+# Requires: pip install kaggle && kaggle.json in ~/.kaggle/
+kaggle datasets download -d mrwellsdavid/unsw-nb15 -p data/unsw-nb15 --unzip
 
 ```
 
@@ -135,7 +137,7 @@ python scripts/download_unsw.py --sample 50000
 
 ```bash
 # Train all models (LightGBM, XGBoost, CatBoost, Isolation Forest)
-python scripts/train_all.py --data data/unsw-nb15/unsw_nb15_demo_50000.csv
+python scripts/train_all.py --data data/unsw-nb15/UNSW_NB15_training-set.csv
 
 # Run model comparison benchmark
 python scripts/compare_models.py
@@ -210,7 +212,6 @@ This project supports multiple datasets:
 
 | Dataset | Type | Size | Use Case |
 |---------|------|------|----------|
-| Synthetic | Generated | 50K | Quick demos, CI/CD |
 | UNSW-NB15 | Real | 2.5M | Production training |
 | CICIDS2017 | Real | 2.8M | Alternative real data |
 

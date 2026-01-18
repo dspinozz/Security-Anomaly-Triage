@@ -279,7 +279,7 @@ def train_all_models(data_path: Path, output_dir: Path = None):
     start = time.time()
     iso_model = IsolationForest(
         n_estimators=100,
-        contamination=float(y_train.mean()),  # Use attack rate as contamination
+        contamination=min(float(y_train.mean()), 0.5),  # Use attack rate as contamination
         random_state=42,
         n_jobs=-1,
     )
@@ -365,7 +365,7 @@ def main():
     parser.add_argument(
         "--data",
         type=Path,
-        default=Path("data/unsw-nb15/unsw_nb15_demo_50000.csv"),
+        default=Path("data/unsw-nb15/UNSW_NB15_training-set.csv"),
         help="Path to training data"
     )
     parser.add_argument(

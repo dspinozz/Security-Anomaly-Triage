@@ -39,7 +39,7 @@ PROJECT_ROOT = Path(__file__).parent.parent
 
 def load_data():
     """Load UNSW-NB15 dataset."""
-    data_path = PROJECT_ROOT / "data" / "unsw-nb15" / "unsw_nb15_demo_50000.csv"
+    data_path = PROJECT_ROOT / "data" / "unsw-nb15" / "UNSW_NB15_training-set.csv"
     
     if not data_path.exists():
         # Fall back to synthetic
