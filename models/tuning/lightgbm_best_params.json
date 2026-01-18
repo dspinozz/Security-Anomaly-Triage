@@ -1,0 +1,16 @@
+{
+  "model": "lightgbm",
+  "best_roc_auc": 0.9578960961182881,
+  "best_params": {
+    "num_leaves": 23,
+    "max_depth": 12,
+    "learning_rate": 0.26690431824362526,
+    "subsample": 0.9041986740582306,
+    "colsample_bytree": 0.6523068845866853,
+    "reg_alpha": 7.569183361880229e-08,
+    "reg_lambda": 0.014391207615728067,
+    "min_child_samples": 47
+  },
+  "n_trials": 5,
+  "elapsed_seconds": 4.472024440765381
+}
