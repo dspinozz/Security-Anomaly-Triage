@@ -1,0 +1,191 @@
+# Feature Engineering Configuration
+# Defines all features extracted from security event streams
+
+windows:
+  - name: "1min"
+    duration_seconds: 60
+  - name: "5min"
+    duration_seconds: 300
+  - name: "15min"
+    duration_seconds: 900
+
+# Per-window aggregate features
+window_features:
+  # Count features
+  - name: event_count
+    type: count
+    description: Total events in window
+    
+  - name: unique_src_ips
+    type: cardinality
+    field: src_ip
+    description: Distinct source IPs
+    
+  - name: unique_dst_ips
+    type: cardinality
+    field: dst_ip
+    description: Distinct destination IPs
+    
+  - name: unique_dst_ports
+    type: cardinality
+    field: dst_port
+    description: Distinct destination ports
+    
+  - name: unique_users
+    type: cardinality
+    field: user
+    description: Distinct users (if available)
+    
+  # Entropy features
+  - name: port_entropy
+    type: entropy
+    field: dst_port
+    description: Shannon entropy of port distribution
+    
+  - name: src_ip_entropy
+    type: entropy
+    field: src_ip
+    description: Shannon entropy of source IPs
+    
+  # Ratio features
+  - name: failed_auth_ratio
+    type: ratio
+    numerator_filter: "status == 'failed'"
+    denominator_filter: "event_type == 'auth'"
+    description: Failed / total auth attempts
+    
+  - name: outbound_ratio
+    type: ratio
+    numerator_filter: "direction == 'outbound'"
+    denominator_filter: null
+    description: Outbound / total connections
+    
+  # Statistical features
+  - name: bytes_in_mean
+    type: mean
+    field: bytes_in
+    description: Mean bytes inbound
+    
+  - name: bytes_in_std
+    type: std
+    field: bytes_in
+    description: Std dev bytes inbound
+    
+  - name: bytes_out_mean
+    type: mean
+    field: bytes_out
+    description: Mean bytes outbound
+    
+  - name: conn_duration_p50
+    type: percentile
+    field: duration
+    percentile: 50
+    description: Median connection duration
+    
+  - name: conn_duration_p95
+    type: percentile
+    field: duration
+    percentile: 95
+    description: 95th percentile connection duration
+    
+  # Burstiness features
+  - name: inter_arrival_cv
+    type: coefficient_of_variation
+    field: inter_arrival_time
+    description: CV of inter-arrival times (burstiness indicator)
+    
+  # Novelty features
+  - name: new_dst_ip_ratio
+    type: novelty_ratio
+    field: dst_ip
+    lookback_windows: 10
+    description: Never-before-seen destination IPs
+
+# Entity-level features (per IP, user, etc.)
+entity_features:
+  - name: historical_event_rate
+    type: rolling_mean
+    lookback_windows: 60  # 1 hour at 1-min windows
+    field: event_count
+    
+  - name: baseline_deviation
+    type: zscore
+    lookback_windows: 1440  # 24 hours
+    field: event_count
+    
+  - name: port_diversity_change
+    type: delta
+    field: unique_dst_ports
+    lookback_windows: 5
+
+# Protocol/service features
+protocol_features:
+  - name: dns_query_ratio
+    type: ratio
+    filter: "protocol == 'dns'"
+    
+  - name: http_error_ratio
+    type: ratio
+    numerator_filter: "protocol == 'http' and status >= 400"
+    denominator_filter: "protocol == 'http'"
+    
+  - name: ssl_failed_ratio
+    type: ratio
+    numerator_filter: "protocol == 'ssl' and status == 'failed'"
+    denominator_filter: "protocol == 'ssl'"
+
+# Derived features (combinations)
+derived_features:
+  - name: bytes_ratio
+    formula: "bytes_out_mean / (bytes_in_mean + 1)"
+    description: Outbound/inbound byte ratio
+    
+  - name: port_scan_indicator
+    formula: "(unique_dst_ports > 100) & (unique_dst_ips < 5)"
+    description: High ports, few targets = potential scan
+
+# Feature selection
+selected_features:
+  # Core features (always include)
+  core:
+    - event_count
+    - unique_src_ips
+    - unique_dst_ips
+    - unique_dst_ports
+    - port_entropy
+    - bytes_in_mean
+    - bytes_out_mean
+    - bytes_ratio
+    - conn_duration_p95
+    - baseline_deviation
+    
+  # Extended features (if available)
+  extended:
+    - failed_auth_ratio
+    - dns_query_ratio
+    - new_dst_ip_ratio
+    - inter_arrival_cv
+    - port_diversity_change
+
+# Target configuration
+targets:
+  binary:
+    name: is_attack
+    positive_label: 1
+    
+  multiclass:
+    name: attack_category
+    classes:
+      - normal
+      - dos
+      - probe
+      - r2l
+      - u2r
+      - backdoor
+      - analysis
+      - fuzzers
+      - worms
+      - shellcode
+      - exploits
+      - generic
+      - reconnaissance

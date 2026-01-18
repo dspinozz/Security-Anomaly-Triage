@@ -1,0 +1,106 @@
+# Baseline Rule Thresholds
+# These define deterministic rules that trigger alerts regardless of ML score
+
+rules:
+  # Port scanning detection
+  - name: high_port_scan
+    description: Potential port scanning activity
+    conditions:
+      - field: unique_dst_ports_1min
+        operator: ">"
+        value: 100
+      - field: unique_dst_ips_1min
+        operator: "<"
+        value: 10
+    severity: high
+    score_boost: 0.3
+    
+  # Brute force detection
+  - name: brute_force_attempt
+    description: Multiple failed auth attempts
+    conditions:
+      - field: failed_auth_ratio_1min
+        operator: ">"
+        value: 0.8
+      - field: event_count_1min
+        operator: ">"
+        value: 20
+    severity: high
+    score_boost: 0.4
+    
+  # Data exfiltration
+  - name: data_exfil_suspect
+    description: Unusual outbound data volume
+    conditions:
+      - field: bytes_out_mean_5min
+        operator: ">"
+        value: 1000000  # 1MB avg
+      - field: bytes_ratio_5min
+        operator: ">"
+        value: 10
+    severity: critical
+    score_boost: 0.5
+    
+  # DNS tunneling
+  - name: dns_tunnel_suspect
+    description: High DNS query rate
+    conditions:
+      - field: dns_query_count_1min
+        operator: ">"
+        value: 500
+    severity: medium
+    score_boost: 0.2
+    
+  # Beaconing behavior
+  - name: beaconing_detected
+    description: Regular periodic connections
+    conditions:
+      - field: inter_arrival_cv_5min
+        operator: "<"
+        value: 0.1  # Very regular timing
+      - field: event_count_5min
+        operator: ">"
+        value: 50
+    severity: high
+    score_boost: 0.35
+    
+  # Unusual destination
+  - name: new_destination_burst
+    description: Burst of never-before-seen destinations
+    conditions:
+      - field: new_dst_ip_ratio_1min
+        operator: ">"
+        value: 0.8
+      - field: unique_dst_ips_1min
+        operator: ">"
+        value: 20
+    severity: medium
+    score_boost: 0.25
+    
+  # Baseline deviation
+  - name: anomalous_volume
+    description: Traffic volume significantly above baseline
+    conditions:
+      - field: baseline_deviation_15min
+        operator: ">"
+        value: 3.0  # 3 standard deviations
+    severity: medium
+    score_boost: 0.2
+
+# Severity levels
+severity_weights:
+  critical: 1.0
+  high: 0.8
+  medium: 0.5
+  low: 0.2
+
+# Score aggregation
+scoring:
+  # Final score = ML_score + sum(rule_boosts)
+  # Capped at 1.0
+  min_ml_score: 0.1
+  max_total_score: 1.0
+  
+  # Alert thresholds
+  alert_threshold: 0.6
+  critical_threshold: 0.85

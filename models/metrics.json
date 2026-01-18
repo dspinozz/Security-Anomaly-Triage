@@ -1,0 +1,12 @@
+{
+  "unified_roc_auc": 1.0,
+  "unified_pr_auc": 1.0,
+  "lgb_roc_auc": 1.0,
+  "lgb_pr_auc": 1.0,
+  "if_roc_auc": 0.011627906976744186,
+  "if_pr_auc": 0.9587341872056094,
+  "alert_reduction_rate": 0.011494252873563204,
+  "test_size": 87,
+  "train_size": 348,
+  "attack_rate": 0.9908045977011494
+}
