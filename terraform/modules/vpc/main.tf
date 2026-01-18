@@ -3,7 +3,7 @@ resource "aws_vpc" "main" {
   cidr_block           = var.cidr_block
   enable_dns_hostnames = true
   enable_dns_support   = true
-  
+
   tags = {
     Name = "${var.project_name}-${var.environment}-vpc"
   }
@@ -12,7 +12,7 @@ resource "aws_vpc" "main" {
 # Internet Gateway
 resource "aws_internet_gateway" "main" {
   vpc_id = aws_vpc.main.id
-  
+
   tags = {
     Name = "${var.project_name}-${var.environment}-igw"
   }
@@ -24,9 +24,9 @@ resource "aws_subnet" "public" {
   vpc_id            = aws_vpc.main.id
   cidr_block        = cidrsubnet(var.cidr_block, 8, count.index)
   availability_zone = var.availability_zones[count.index]
-  
+
   map_public_ip_on_launch = true
-  
+
   tags = {
     Name = "${var.project_name}-${var.environment}-public-${count.index + 1}"
     Type = "public"
@@ -39,7 +39,7 @@ resource "aws_subnet" "private" {
   vpc_id            = aws_vpc.main.id
   cidr_block        = cidrsubnet(var.cidr_block, 8, count.index + 10)
   availability_zone = var.availability_zones[count.index]
-  
+
   tags = {
     Name = "${var.project_name}-${var.environment}-private-${count.index + 1}"
     Type = "private"
@@ -50,11 +50,11 @@ resource "aws_subnet" "private" {
 resource "aws_eip" "nat" {
   count  = length(var.availability_zones)
   domain = "vpc"
-  
+
   tags = {
     Name = "${var.project_name}-${var.environment}-nat-eip-${count.index + 1}"
   }
-  
+
   depends_on = [aws_internet_gateway.main]
 }
 
@@ -63,23 +63,23 @@ resource "aws_nat_gateway" "main" {
   count         = length(var.availability_zones)
   allocation_id = aws_eip.nat[count.index].id
   subnet_id     = aws_subnet.public[count.index].id
-  
+
   tags = {
     Name = "${var.project_name}-${var.environment}-nat-${count.index + 1}"
   }
-  
+
   depends_on = [aws_internet_gateway.main]
 }
 
 # Route Table for Public Subnets
 resource "aws_route_table" "public" {
   vpc_id = aws_vpc.main.id
-  
+
   route {
     cidr_block = "0.0.0.0/0"
     gateway_id = aws_internet_gateway.main.id
   }
-  
+
   tags = {
     Name = "${var.project_name}-${var.environment}-public-rt"
   }
@@ -96,12 +96,12 @@ resource "aws_route_table_association" "public" {
 resource "aws_route_table" "private" {
   count  = length(var.availability_zones)
   vpc_id = aws_vpc.main.id
-  
+
   route {
     cidr_block     = "0.0.0.0/0"
     nat_gateway_id = aws_nat_gateway.main[count.index].id
   }
-  
+
   tags = {
     Name = "${var.project_name}-${var.environment}-private-rt-${count.index + 1}"
   }
@@ -119,7 +119,7 @@ resource "aws_security_group" "alb" {
   name        = "${var.project_name}-${var.environment}-alb-sg"
   description = "Security group for Application Load Balancer"
   vpc_id      = aws_vpc.main.id
-  
+
   ingress {
     description = "HTTP"
     from_port   = 80
@@ -127,7 +127,7 @@ resource "aws_security_group" "alb" {
     protocol    = "tcp"
     cidr_blocks = ["0.0.0.0/0"]
   }
-  
+
   ingress {
     description = "HTTPS"
     from_port   = 443
@@ -135,7 +135,7 @@ resource "aws_security_group" "alb" {
     protocol    = "tcp"
     cidr_blocks = ["0.0.0.0/0"]
   }
-  
+
   egress {
     description = "All outbound"
     from_port   = 0
@@ -143,7 +143,7 @@ resource "aws_security_group" "alb" {
     protocol    = "-1"
     cidr_blocks = ["0.0.0.0/0"]
   }
-  
+
   tags = {
     Name = "${var.project_name}-${var.environment}-alb-sg"
   }
@@ -154,7 +154,7 @@ resource "aws_security_group" "ecs" {
   name        = "${var.project_name}-${var.environment}-ecs-sg"
   description = "Security group for ECS tasks"
   vpc_id      = aws_vpc.main.id
-  
+
   ingress {
     description     = "App port from ALB"
     from_port       = 8001
@@ -162,7 +162,7 @@ resource "aws_security_group" "ecs" {
     protocol        = "tcp"
     security_groups = [aws_security_group.alb.id]
   }
-  
+
   egress {
     description = "All outbound"
     from_port   = 0
@@ -170,7 +170,7 @@ resource "aws_security_group" "ecs" {
     protocol    = "-1"
     cidr_blocks = ["0.0.0.0/0"]
   }
-  
+
   tags = {
     Name = "${var.project_name}-${var.environment}-ecs-sg"
   }

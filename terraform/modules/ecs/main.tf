@@ -1,7 +1,7 @@
 # IAM Role for ECS Task Execution
 resource "aws_iam_role" "ecs_execution" {
   name = "${var.project_name}-${var.environment}-ecs-execution-role"
-  
+
   assume_role_policy = jsonencode({
     Version = "2012-10-17"
     Statement = [{
@@ -12,7 +12,7 @@ resource "aws_iam_role" "ecs_execution" {
       }
     }]
   })
-  
+
   tags = {
     Name = "${var.project_name}-${var.environment}-ecs-execution-role"
   }
@@ -26,7 +26,7 @@ resource "aws_iam_role_policy_attachment" "ecs_execution" {
 resource "aws_iam_role_policy" "s3_models" {
   name = "${var.project_name}-${var.environment}-s3-models-policy"
   role = aws_iam_role.ecs_execution.id
-  
+
   policy = jsonencode({
     Version = "2012-10-17"
     Statement = [{
@@ -45,7 +45,7 @@ resource "aws_iam_role_policy" "s3_models" {
 
 resource "aws_iam_role" "ecs_task" {
   name = "${var.project_name}-${var.environment}-ecs-task-role"
-  
+
   assume_role_policy = jsonencode({
     Version = "2012-10-17"
     Statement = [{
@@ -56,7 +56,7 @@ resource "aws_iam_role" "ecs_task" {
       }
     }]
   })
-  
+
   tags = {
     Name = "${var.project_name}-${var.environment}-ecs-task-role"
   }
@@ -72,16 +72,16 @@ resource "aws_ecs_task_definition" "app" {
   memory                   = var.memory
   execution_role_arn       = aws_iam_role.ecs_execution.arn
   task_role_arn            = aws_iam_role.ecs_task.arn
-  
+
   container_definitions = jsonencode([{
     name  = "${var.project_name}-${var.environment}"
     image = "${var.ecr_repository_url}:${var.image_tag}"
-    
+
     portMappings = [{
       containerPort = 8001
       protocol      = "tcp"
     }]
-    
+
     environment = [
       {
         name  = "ENVIRONMENT"
@@ -92,7 +92,7 @@ resource "aws_ecs_task_definition" "app" {
         value = var.models_bucket_name
       }
     ]
-    
+
     logConfiguration = {
       logDriver = "awslogs"
       options = {
@@ -101,7 +101,7 @@ resource "aws_ecs_task_definition" "app" {
         "awslogs-stream-prefix" = "ecs"
       }
     }
-    
+
     healthCheck = {
       command     = ["CMD-SHELL", "curl -f http://localhost:8001/health || exit 1"]
       interval    = 30
@@ -110,7 +110,7 @@ resource "aws_ecs_task_definition" "app" {
       startPeriod = 60
     }
   }])
-  
+
   tags = {
     Name = "${var.project_name}-${var.environment}-task"
   }
@@ -122,29 +122,29 @@ resource "aws_ecs_service" "app" {
   task_definition = aws_ecs_task_definition.app.arn
   desired_count   = var.desired_count
   launch_type     = "FARGATE"
-  
+
   network_configuration {
     subnets          = var.subnets
-    security_groups = var.security_groups
+    security_groups  = var.security_groups
     assign_public_ip = false
   }
-  
+
   load_balancer {
     target_group_arn = var.alb_target_group_arn
     container_name   = "${var.project_name}-${var.environment}"
     container_port   = 8001
   }
-  
+
   deployment_maximum_percent         = 200
   deployment_minimum_healthy_percent = 100
-  
+
   deployment_circuit_breaker {
     enable   = true
     rollback = true
   }
-  
+
   depends_on = [var.alb_listener_arn]
-  
+
   tags = {
     Name = "${var.project_name}-${var.environment}-service"
   }

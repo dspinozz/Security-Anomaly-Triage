@@ -30,7 +30,7 @@ output "models_bucket_name" {
 
 output "api_endpoint" {
   description = "API endpoint URL"
-  value       = "http://${module.alb.dns_name}"
+  value       = var.certificate_arn != "" || var.domain_name != "" ? "https://${module.alb.dns_name}" : "http://${module.alb.dns_name}"
 }
 
 output "cloudwatch_log_group" {

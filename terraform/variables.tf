@@ -14,7 +14,7 @@ variable "environment" {
   description = "Environment name (dev, staging, prod)"
   type        = string
   default     = "dev"
-  
+
   validation {
     condition     = contains(["dev", "staging", "prod"], var.environment)
     error_message = "Environment must be dev, staging, or prod."
@@ -61,4 +61,16 @@ variable "health_check_path" {
   description = "Health check path"
   type        = string
   default     = "/health"
+}
+
+variable "domain_name" {
+  description = "Domain name for ACM certificate (optional, leave empty to disable HTTPS)"
+  type        = string
+  default     = ""
+}
+
+variable "certificate_arn" {
+  description = "ACM certificate ARN (optional, will create certificate if domain_name is provided)"
+  type        = string
+  default     = ""
 }

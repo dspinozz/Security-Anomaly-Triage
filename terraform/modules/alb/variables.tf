@@ -22,3 +22,9 @@ variable "security_groups" {
   description = "Security group IDs for ALB"
   type        = list(string)
 }
+
+variable "certificate_arn" {
+  description = "ACM certificate ARN for HTTPS (optional)"
+  type        = string
+  default     = ""
+}
