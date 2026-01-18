@@ -4,7 +4,7 @@
 [![Python](https://img.shields.io/badge/python-3.11+-blue)]()
 [![License](https://img.shields.io/badge/license-MIT-green)]()
 
-A production-grade cybersecurity ML system for anomaly scoring using gradient boosted trees (LightGBM, XGBoost, CatBoost) with time-series feature engineering.
+A cybersecurity ML system for anomaly scoring and alert triage using gradient boosted trees (LightGBM, XGBoost, CatBoost).
 
 ## 🎯 Project Goals
 
@@ -74,7 +74,6 @@ sec-anomaly-triage/
 │   ├── features.yaml         # Feature definitions
 │   └── thresholds.yaml       # Baseline rule thresholds
 ├── data/
-│   ├── synthetic/            # Synthetic demo data
 │   └── unsw-nb15/            # UNSW-NB15 dataset
 ├── src/
 │   ├── features/
@@ -130,8 +129,6 @@ pip install -r requirements.txt
 # Download UNSW-NB15-like dataset (recommended)
 python scripts/download_unsw.py --sample 50000
 
-# Alternative: Generate synthetic demo data (for quick testing)
-# python scripts/download_data.py --dataset synthetic --n-events 50000
 ```
 
 ### Train Models
