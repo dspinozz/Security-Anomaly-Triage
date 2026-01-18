@@ -21,7 +21,8 @@ Evaluated on UNSW-NB15-like dataset (50,000 samples, 9 attack types):
 |-------|---------|--------|----------|------------|
 | LightGBM | 0.957 | 0.917 | 0.813 | 165s |
 | XGBoost | 0.957 | 0.918 | 0.813 | 54s |
-| CatBoost | 0.957 | 0.917 | 0.810 | 1.3s |
+| CatBoost | 0.957 | 0.916 | 0.808 | 0.7s |
+| Isolation Forest | 0.606 | 0.422 | 0.347 | 0.2s |
 
 *Note: All three GBT variants achieve similar performance, which is expected—they use the same underlying algorithm family. See [notebooks/eda.py](notebooks/eda.py) for analysis.*
 

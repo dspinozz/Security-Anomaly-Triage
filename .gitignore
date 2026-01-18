@@ -162,6 +162,3 @@ celerybeat.pid
 
 # Profiling
 *.prof
-
-# CatBoost training artifacts
-catboost_info/

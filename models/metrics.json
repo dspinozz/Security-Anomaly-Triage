@@ -1,12 +1,14 @@
 {
-  "unified_roc_auc": 1.0,
-  "unified_pr_auc": 1.0,
-  "lgb_roc_auc": 1.0,
-  "lgb_pr_auc": 1.0,
-  "if_roc_auc": 0.011627906976744186,
-  "if_pr_auc": 0.9587341872056094,
-  "alert_reduction_rate": 0.011494252873563204,
-  "test_size": 87,
-  "train_size": 348,
-  "attack_rate": 0.9908045977011494
+  "lgb_roc_auc": 0.9573881234671678,
+  "lgb_pr_auc": 0.9176084697313288,
+  "xgb_roc_auc": 0.95721575347211,
+  "xgb_pr_auc": 0.9172884053198791,
+  "cat_roc_auc": 0.9566861268018716,
+  "cat_pr_auc": 0.916300097819223,
+  "if_roc_auc": 0.6062405605257932,
+  "if_pr_auc": 0.4223685593053217,
+  "test_size": 10000,
+  "train_size": 34000,
+  "attack_rate": 0.31696,
+  "data_file": "unsw_nb15_demo_50000.csv"
 }

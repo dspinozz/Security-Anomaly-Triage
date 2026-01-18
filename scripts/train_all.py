@@ -2,6 +2,7 @@
 """Extended training script that saves LightGBM, XGBoost, and CatBoost models.
 
 Usage:
+    python scripts/train_all.py --data data/unsw-nb15/unsw_nb15_demo_50000.csv
     python scripts/train_all.py --data data/synthetic/synthetic_events.csv
 """
 
@@ -30,11 +31,43 @@ console = Console()
 PROJECT_ROOT = Path(__file__).parent.parent
 
 
-def load_event_level_data(path: Path):
-    """Load data at event level for multi-model training."""
+def load_unsw_data(path: Path):
+    """Load UNSW-NB15 format data."""
     df = pd.read_csv(path)
     
-    # Create features
+    # Numeric features from UNSW-NB15
+    numeric_cols = [
+        'dur', 'spkts', 'dpkts', 'sbytes', 'dbytes', 'rate',
+        'sttl', 'dttl', 'sload', 'dload', 'sloss', 'dloss',
+        'sinpkt', 'dinpkt', 'sjit', 'djit', 'swin', 'dwin',
+        'stcpb', 'dtcpb', 'tcprtt', 'synack', 'ackdat',
+        'smean', 'dmean', 'trans_depth', 'response_body_len',
+        'ct_srv_src', 'ct_state_ttl', 'ct_dst_ltm',
+        'ct_src_dport_ltm', 'ct_dst_sport_ltm', 'ct_dst_src_ltm',
+        'is_ftp_login', 'ct_ftp_cmd', 'ct_flw_http_mthd',
+        'ct_src_ltm', 'ct_srv_dst', 'is_sm_ips_ports'
+    ]
+    
+    # Use only columns that exist
+    feature_cols = [c for c in numeric_cols if c in df.columns]
+    
+    # Add categorical encoding
+    for cat_col in ['proto', 'service', 'state']:
+        if cat_col in df.columns:
+            dummies = pd.get_dummies(df[cat_col], prefix=cat_col)
+            df = pd.concat([df, dummies], axis=1)
+            feature_cols.extend(dummies.columns.tolist())
+    
+    X = df[feature_cols].fillna(0)
+    y = df['label']
+    
+    return X, y, feature_cols
+
+
+def load_synthetic_data(path: Path):
+    """Load synthetic event format data."""
+    df = pd.read_csv(path)
+    
     feature_cols = ['src_port', 'dst_port', 'bytes_in', 'bytes_out', 'duration']
     
     # Encode categorical
@@ -55,6 +88,19 @@ def load_event_level_data(path: Path):
     return X, y, feature_cols
 
 
+def load_data(path: Path):
+    """Auto-detect data format and load."""
+    df = pd.read_csv(path, nrows=5)
+    
+    # UNSW-NB15 format has 'dur', 'spkts', etc.
+    if 'dur' in df.columns and 'spkts' in df.columns:
+        console.print("[cyan]Detected UNSW-NB15 format[/cyan]")
+        return load_unsw_data(path)
+    else:
+        console.print("[cyan]Detected synthetic format[/cyan]")
+        return load_synthetic_data(path)
+
+
 def train_all_models(data_path: Path, output_dir: Path = None):
     """Train LightGBM, XGBoost, and CatBoost models."""
     
@@ -67,13 +113,13 @@ def train_all_models(data_path: Path, output_dir: Path = None):
     
     # Load data
     console.print("\n[yellow]Loading data...[/yellow]")
-    X, y, feature_cols = load_event_level_data(data_path)
+    X, y, feature_cols = load_data(data_path)
     
     console.print(f"  Samples: {len(X):,}")
     console.print(f"  Features: {len(feature_cols)}")
     console.print(f"  Positive rate: {y.mean()*100:.1f}%")
     
-    # Split data
+    # Split data - temporal split if possible, otherwise stratified
     X_train, X_test, y_train, y_test = train_test_split(
         X, y, test_size=0.2, stratify=y, random_state=42
     )
@@ -135,7 +181,7 @@ def train_all_models(data_path: Path, output_dir: Path = None):
     
     # Save LightGBM
     lgb_model.save_model(str(output_dir / "lightgbm.txt"))
-    console.print(f"  ✓ LightGBM trained in {lgb_time:.2f}s")
+    console.print(f"  ✓ LightGBM trained in {lgb_time:.2f}s, ROC-AUC: {results['LightGBM']['roc_auc']:.4f}")
     
     # ========================================
     # 2. XGBoost
@@ -182,7 +228,7 @@ def train_all_models(data_path: Path, output_dir: Path = None):
     
     # Save XGBoost
     xgb_model.save_model(str(output_dir / "xgboost.json"))
-    console.print(f"  ✓ XGBoost trained in {xgb_time:.2f}s")
+    console.print(f"  ✓ XGBoost trained in {xgb_time:.2f}s, ROC-AUC: {results['XGBoost']['roc_auc']:.4f}")
     
     # ========================================
     # 3. CatBoost
@@ -222,7 +268,41 @@ def train_all_models(data_path: Path, output_dir: Path = None):
     
     # Save CatBoost
     cat_model.save_model(str(output_dir / "catboost.cbm"))
-    console.print(f"  ✓ CatBoost trained in {cat_time:.2f}s")
+    console.print(f"  ✓ CatBoost trained in {cat_time:.2f}s, ROC-AUC: {results['CatBoost']['roc_auc']:.4f}")
+    
+    # ========================================
+    # 4. Isolation Forest (unsupervised)
+    # ========================================
+    console.print("\n[bold]Training Isolation Forest...[/bold]")
+    from sklearn.ensemble import IsolationForest
+    
+    start = time.time()
+    iso_model = IsolationForest(
+        n_estimators=100,
+        contamination=float(y_train.mean()),  # Use attack rate as contamination
+        random_state=42,
+        n_jobs=-1,
+    )
+    iso_model.fit(X_train.values)
+    iso_time = time.time() - start
+    
+    # Isolation Forest returns -1 for outliers, 1 for inliers
+    # Convert to scores: higher = more anomalous
+    iso_scores = -iso_model.score_samples(X_test.values)
+    iso_scores = (iso_scores - iso_scores.min()) / (iso_scores.max() - iso_scores.min() + 1e-8)
+    
+    iso_roc = roc_auc_score(y_test, iso_scores)
+    results["IsolationForest"] = {
+        "roc_auc": iso_roc,
+        "pr_auc": average_precision_score(y_test, iso_scores),
+        "f1": f1_score(y_test, (iso_scores >= 0.5).astype(int)),
+        "train_time": iso_time,
+    }
+    
+    # Save Isolation Forest
+    import joblib
+    joblib.dump(iso_model, output_dir / "isolation_forest.joblib")
+    console.print(f"  ✓ IsolationForest trained in {iso_time:.2f}s, ROC-AUC: {iso_roc:.4f}")
     
     # ========================================
     # Results Summary
@@ -231,7 +311,7 @@ def train_all_models(data_path: Path, output_dir: Path = None):
     console.print("[bold]RESULTS SUMMARY[/bold]")
     console.print("=" * 60)
     
-    table = Table(title="Model Performance")
+    table = Table(title="Model Performance on Test Set")
     table.add_column("Model", style="cyan")
     table.add_column("ROC-AUC", style="green")
     table.add_column("PR-AUC", style="green")
@@ -253,12 +333,14 @@ def train_all_models(data_path: Path, output_dir: Path = None):
     metadata = {
         "feature_columns": feature_cols,
         "models": list(results.keys()),
-        "results": results,
+        "results": {k: {kk: float(vv) for kk, vv in v.items()} for k, v in results.items()},
         "data_stats": {
-            "total_samples": len(X),
-            "train_samples": len(X_train),
-            "test_samples": len(X_test),
+            "total_samples": int(len(X)),
+            "train_samples": int(len(X_train)),
+            "val_samples": int(len(X_val)),
+            "test_samples": int(len(X_test)),
             "positive_rate": float(y.mean()),
+            "data_file": str(data_path.name),
         },
     }
     
@@ -283,7 +365,7 @@ def main():
     parser.add_argument(
         "--data",
         type=Path,
-        default=Path("data/synthetic/synthetic_events.csv"),
+        default=Path("data/unsw-nb15/unsw_nb15_demo_50000.csv"),
         help="Path to training data"
     )
     parser.add_argument(
@@ -296,6 +378,7 @@ def main():
     
     if not args.data.exists():
         console.print(f"[red]Data file not found: {args.data}[/red]")
+        console.print("[yellow]Run: python scripts/download_unsw.py[/yellow]")
         return
     
     train_all_models(args.data, args.output)
