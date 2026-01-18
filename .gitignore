@@ -162,3 +162,5 @@ celerybeat.pid
 
 # Profiling
 *.prof
+terraform/.terraform/
+.terraform.lock.hcl
