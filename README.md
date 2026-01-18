@@ -212,7 +212,7 @@ This project supports multiple datasets:
 
 | Dataset | Type | Size | Use Case |
 |---------|------|------|----------|
-| UNSW-NB15 | Real | 2.5M | Production training |
+| UNSW-NB15 | Real | 257K | Official benchmark split |
 | CICIDS2017 | Real | 2.8M | Alternative real data |
 
 ### Attack Types (UNSW-NB15)
