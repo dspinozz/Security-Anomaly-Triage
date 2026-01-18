@@ -113,7 +113,7 @@ sec-anomaly-triage/
 
 ```bash
 # Clone repository
-git clone https://github.com/yourusername/sec-anomaly-triage.git
+git clone https://github.com/dspinozz/Security-Anomaly-Triage.git
 cd sec-anomaly-triage
 
 # Create virtual environment
@@ -127,17 +127,17 @@ pip install -r requirements.txt
 ### Prepare Data
 
 ```bash
-# Option 1: Generate synthetic demo data
-python scripts/download_data.py --dataset synthetic --n-events 50000
-
-# Option 2: Use UNSW-NB15-like realistic data
+# Download UNSW-NB15-like dataset (recommended)
 python scripts/download_unsw.py --sample 50000
+
+# Alternative: Generate synthetic demo data (for quick testing)
+# python scripts/download_data.py --dataset synthetic --n-events 50000
 ```
 
 ### Train Models
 
 ```bash
-# Train all models (LightGBM, XGBoost, CatBoost)
+# Train all models (LightGBM, XGBoost, CatBoost, Isolation Forest)
 python scripts/train_all.py --data data/unsw-nb15/unsw_nb15_demo_50000.csv
 
 # Run model comparison benchmark
